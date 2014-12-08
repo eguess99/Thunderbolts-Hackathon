@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Language Tester</title>
+<link href='http://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
+<style>
+      body {
+        font-family: 'Ubuntu', sans-serif;
+        font-size: 30px;
+        background-color:white;
+      }
+      h1   {color:blue}
+      h2   {color:darkgreen ; font-size:30% }
+      p    {color:green}
+      div  {color:red ; font-size:200% }
+</style>
+</head>
+<body>
+<h1>Foreign Language Vocabulary Self Tester</h1>
+<p>Ever need a simple vocabulary tester to hone up your foreign language skills quickly?</p>
+<p>Click "add test" below to GET STARTED!</p>
+
+
+  <ul id="tests"></ul>
+
+  <button id="btn-add">Add test</button>
+  <button id="btn-save">Save tests</button>
+  <button id="btn-clear">Clear storage</button>
+
+  <div id="div-result"></div>
+  <div id="div-total"></div>
+
+  <script type="text/javascript">
+
+(function ( document, window ) {
+
+  var result = document.getElementById('div-result')
+    , total = document.getElementById('div-total');
+
+  // default object for the flash card library thingy
+  function fc() {
+    this.cards = {};
+  }
+
+  // clean input from tabs, spaces, uppercases. We don't want people to accidentally get a question wrong 'cause case-sensitivity
+  fc.prototype.simplify = function ( val ) {
+    if ( val !== null ) {
+      return val.toLowerCase().trim();
+    }
+    return null;
+  }
+
+  // add to library an item
+  fc.prototype.add = function ( key, val) {
+    key = this.simplify( key );
+    val = this.simplify( val );
+    if ( key !== null && val !== null ) {
+      this.cards[key] = val;
+    }
+  }
+
+  // check the right value for the key
+  fc.prototype.check = function ( key, val ) {
+    key = this.simplify( key );
+    val = this.simplify( val );
+
+    if ( this.cards.hasOwnProperty( key ) && this.cards[ key ] === val ) {
+      return true;
+    }
+    return false;
+  }
+
+  // test all values in order
+  fc.prototype.start = function () {
+    var rights = 0
+      , wrongs = 0;
+
+    result.innerHTML = '';
+    total.innerHTML = '';
+
+    for (var i in this.cards) {
+      var guess = prompt('Type in the translation for the word "' + i + '"' );
+      if ( this.check( i, guess ) ) {
+        result.innerHTML += 'Right: ' + i + ' &rarr; ' + this.cards[ i ];
+        rights++;
+      } else {
+        result.innerHTML += 'Wrong: ' + guess + ', ' + i + ' &rarr; ' + this.cards[ i ];
+        wrongs++;
+      }
+      result.innerHTML += '<br>';
+    }
+    total.innerHTML = 'Right answers: ' + rights + '<br>Wrong answers: ' +  wrongs ;
+  }
+
+
+
+
+
+
+
+
+
+  var app = ( function ( document, window ) {
+    // declare some references, variables    
+    var tests =  {}
+      , el = document.getElementById('tests');
+
+     function addTest () {
+      var name = prompt('Test name?');
+      if ( name !== null ) {
+        tests[ name ] = new fc();
+        render();
+      }
+    }
+
+    // register some events
+    function registerEvents () {
+      document.getElementById('btn-add').addEventListener( 'click', addTest, false );
+      document.getElementById('btn-save').addEventListener( 'click', save, false );
+      document.getElementById('btn-clear').addEventListener( 'click', clear, false );
+    }
+
+    // render function
+    function render () {
+      var li = undefined
+        , linkAdd = undefined
+        , linkStart = undefined
+        , docFrag = document.createDocumentFragment();
+
+      // clear the dom
+      while (el.firstChild) {
+          el.removeChild( el.firstChild );
+      };
+      el.innerHTML = '';
+
+      for ( var i in tests) {
+        li = document.createElement( 'li' );
+        li.innerHTML = i; // test name
+
+        li.appendChild( document.createTextNode(' -> ') );
+
+        // btn start test
+        btnStart = document.createElement( 'button' );
+        btnStart.setAttribute('data', i );
+
+        btnStart.addEventListener( 'click', function( e ){
+          var my = this.getAttribute( 'data');
+          tests[ my ].start();
+        }, false );
+
+        btnStart.textContent = 'Start test';
+        li.appendChild( btnStart );
+
+        // btn add item to the test
+        btnAdd = document.createElement( 'button' );
+        btnAdd.setAttribute('data', i );
+
+        btnAdd.addEventListener( 'click', function( e ){
+          var my = this.getAttribute( 'data');
+          tests[ my ].add( prompt( 'Type in the English word to be tested on:' ), prompt( 'Type in the foreign language translation of that word:' ));
+        }, false );
+
+        btnAdd.textContent = 'Add item';
+        li.appendChild( btnAdd );
+
+        // btn remove test
+        btnRemove = document.createElement( 'button' );
+        btnRemove.setAttribute('data', i );
+
+        btnRemove.addEventListener( 'click', function( e ){
+          var my = this.getAttribute( 'data');
+          delete tests[ my ];
+          render();
+        }, false );
+
+        btnRemove.textContent = 'Remove test';
+        li.appendChild( btnRemove );
+
+        docFrag.appendChild( li );
+      };
+
+      el.appendChild( docFrag );
+    }
+
+    // save tests to localstorage - glitchy still
+    function save () {
+      var data = JSON.stringify( tests );
+      console.log( data );
+      localStorage.setItem( 'tests', data );
+    }
+
+    // load tests form localstorage
+    function load () {
+      var saved = localStorage[ 'tests' ] || false;
+      if ( saved ) {
+        var data = undefined;
+        data = JSON.parse( localStorage.getItem( 'tests' ) );
+        console.log( data );
+
+        // initialize test objects with loaded data
+        for( var i in data ) {
+          tests[ i ] = new fc();
+          for ( var j in data[ i ] ) {
+            tests[ i ][ j ] = data[ i ][ j ];
+          }
+        }
+        render();
+      } 
+    }
+
+    function clear () {
+      localStorage.clear();
+      tests = [];
+      render();
+    }
+
+    // initialisation part
+    registerEvents();
+    load();
+
+  } ) ( document, window );
+} ) ( document, window );
+  </script>
+  
+<!--A little translate widget to help kids who forgot their translations. Taken DIRECTLY from babylon's website--> 
+<script type="text/javascript">
+var Babylon_Affiliate = "CD4821 ";
+var Babylon_Language = "EN";
+var uri = "";
+var but = "";
+var but_size = 5;
+var p_height = 48;
+var p_width = 129;
+var comma = "EN,DE,ES,FR,HE,IT,JA,NL,PT,SR,ZHS,ZHT,KO,RU,SV,TR,HI";
+var x = 54;
+var y = 5;
+var url = "http://www.babylon.com/welcome/?affID=4821";
+var pic = "http://img.babylon.com/ww/wideTBoxElegant1.gif";
+var f_width = 194;
+var f_height = 100;
+var bg_color = "";
+</script>
+<br>
+<script type="text/javascript" src="http://online.babylon.com/trans_box/js/tbv2.js"></script>
+<h2><center>---created by the "Thunderbolts" during the 2014 Koding Hackathon---</center></h2>
+</body>    
+</html>
